@@ -891,11 +891,13 @@ static void t1_enc_refpass_step(
 		char type,
 		int vsc)
 {
-	int v, flag;
+	int v;
 	
 	opj_mqc_t *mqc = t1->mqc;	/* MQC component */
 	
-	flag = vsc ? ((*dec_flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*dec_flagsp);
+	/* XXX:TODO vsc mode as per
+	   flag = vsc ? ((*dec_flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*dec_flagsp);
+	*/
 
 	enc_flags_t shift_flags = *enc_flagsp >> (ci * 3);
 	if ((shift_flags & (T1_SIGMA_4 | T1_PI_0)) == T1_SIGMA_4) {
@@ -907,7 +909,6 @@ static void t1_enc_refpass_step(
 		} else {
 			mqc_encode(mqc, v);
 		}
-		*dec_flagsp |= T1_REFINE;
 		*enc_flagsp |= T1_MU_0 << (ci * 3);
 	}
 }
