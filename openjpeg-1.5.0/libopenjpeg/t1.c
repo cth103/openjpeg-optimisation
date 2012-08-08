@@ -655,8 +655,10 @@ static void t1_enc_sigpass_step(
 	flag = vsc ? ((*dec_flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*dec_flagsp);
 
 	/* XXX:TODO enc_flags_t and vsc mode */
-	
-	if ((flag & T1_SIG_OTH) && !(flag & (T1_SIG | T1_VISIT))) {
+
+	enc_flags_t const shift_flags = *enc_flagsp >> (ci * 3);
+
+	if ((shift_flags & (T1_SIGMA_THIS | T1_PI_THIS)) == 0 && (shift_flags & T1_SIGMA_NEIGHBOURS) != 0) {
 		v = int_abs(*datap) & one ? 1 : 0;
 		mqc_setcurctx(mqc, t1_enc_getctxno_zc(orient, *enc_flagsp, ci));	/* ESSAI */
 		if (type == T1_TYPE_RAW) {	/* BYPASS/LAZY MODE */
