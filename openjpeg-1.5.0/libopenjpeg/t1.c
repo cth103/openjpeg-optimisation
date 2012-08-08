@@ -556,21 +556,21 @@ static void t1_enc_updateflags(dec_flags_t *dec_flagsp, enc_flags_t *enc_flagsp,
 	*enc_flagsp |= T1_SIGMA_4 << (3 * ci);
 	
 	if (ci == 0) {
-		int* n = enc_flagsp - enc_stride;
+		enc_flags_t* n = enc_flagsp - enc_stride;
 		*n |= T1_SIGMA_16;
-		int* nw = n - 1;
+		enc_flags_t* nw = n - 1;
 		*nw |= T1_SIGMA_17;
-		int* ne = n + 1;
+		enc_flags_t* ne = n + 1;
 		*ne |= T1_SIGMA_15;
 	}
 	
 	/* south-west, south, south-east */
 	if (ci == 3) {
-		int* s = enc_flagsp + enc_stride;
+		enc_flags_t* s = enc_flagsp + enc_stride;
 		*s |= T1_SIGMA_1;
-		int* sw = s - 1;
+		enc_flags_t* sw = s - 1;
 		*sw |= T1_SIGMA_2;
-		int* se = s + 1;
+		enc_flags_t* se = s + 1;
 		*se |= T1_SIGMA_0;
 	}
 	
@@ -586,7 +586,7 @@ static void t1_enc_updateflags(dec_flags_t *dec_flagsp, enc_flags_t *enc_flagsp,
 		case 0:
 		{
 			*enc_flagsp |= T1_CHI_1;
-			int* n = enc_flagsp - enc_stride;
+			enc_flags_t* n = enc_flagsp - enc_stride;
 			*n |= T1_CHI_5;
 			break;
 		}
@@ -599,7 +599,7 @@ static void t1_enc_updateflags(dec_flags_t *dec_flagsp, enc_flags_t *enc_flagsp,
 		case 3:
 		{
 			*enc_flagsp |= T1_CHI_4;
-			int* s = enc_flagsp + enc_stride;
+			enc_flags_t* s = enc_flagsp + enc_stride;
 			*s |= T1_CHI_0;
 			break;
 		}
@@ -647,14 +647,12 @@ static void t1_enc_sigpass_step(
 		int vsc)
 {
 	int v;
-	dec_flags_t flag;
-	enc_flags_t flagX;
 	
 	opj_mqc_t *mqc = t1->mqc;	/* MQC component */
 	
-	flag = vsc ? ((*dec_flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*dec_flagsp);
-
-	/* XXX:TODO enc_flags_t and vsc mode */
+	/* XXX:TODO enc_flags_t and vsc mode a la
+	   flag = vsc ? ((*dec_flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*dec_flagsp);
+	*/
 
 	enc_flags_t const shift_flags = *enc_flagsp >> (ci * 3);
 
@@ -1112,11 +1110,14 @@ static void t1_enc_clnpass_step(
 		int partial,
 		int vsc)
 {
-	int v, flag;
+	int v;
 	
 	opj_mqc_t *mqc = t1->mqc;	/* MQC component */
+
+	/* XXX:TODO vsc mode a la 
+	   flag = vsc ? ((*dec_flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*dec_flagsp);
+	*/
 	
-	flag = vsc ? ((*dec_flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*dec_flagsp);
 	if (partial) {
 		goto LABEL_PARTIAL;
 	}
@@ -1468,7 +1469,7 @@ static opj_bool allocate_buffers(
 
 	if (flags_size > t1->enc_flags_size) {
 		opj_aligned_free(t1->enc_flags);
-		t1->enc_flags = (int *) opj_aligned_malloc(flags_size * sizeof(enc_flags_t));
+		t1->enc_flags = (enc_flags_t *) opj_aligned_malloc(flags_size * sizeof(enc_flags_t));
 		if (!t1->enc_flags) {
 			return OPJ_FALSE;
 		}
