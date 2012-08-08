@@ -432,9 +432,9 @@ static int t1_enc_getctxno_mag(dec_flags_t f, enc_flags_t ff, int ci) {
 	int tmp2 = (shift_flags & T1_MU_0) ? T1_CTXNO_MAG + 2 : tmp;
 
 	/* CHECK */
-//	assert (tmp2 == t1_dec_getctxno_mag (f));
+	assert (tmp2 == t1_dec_getctxno_mag (f));
 
-	return t1_dec_getctxno_mag (f);
+	return tmp2;
 }
 
 static char t1_dec_getspb(dec_flags_t f) {
