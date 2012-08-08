@@ -1120,7 +1120,10 @@ static void t1_enc_clnpass_step(
 	if (partial) {
 		goto LABEL_PARTIAL;
 	}
-	if (!(*dec_flagsp & (T1_SIG | T1_VISIT))) {
+
+	enc_flags_t shift_flags = *enc_flagsp >> (ci * 3);
+	
+	if (!(shift_flags & (T1_SIGMA_4 | T1_PI_0))) {
 		mqc_setcurctx(mqc, t1_enc_getctxno_zc(orient, *enc_flagsp, ci));
 		v = int_abs(*datap) & one ? 1 : 0;
 		mqc_encode(mqc, v);
