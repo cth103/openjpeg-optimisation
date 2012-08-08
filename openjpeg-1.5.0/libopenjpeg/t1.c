@@ -41,10 +41,10 @@
 /** @name Local static functions */
 /*@{*/
 
-static INLINE char t1_getctxno_zc(int f, int orient);
-static char t1_getctxno_sc(int f);
-static INLINE int t1_getctxno_mag(int f);
-static char t1_getspb(int f);
+static INLINE char t1_getctxno_zc(dec_flags_t f, int orient);
+static char t1_getctxno_sc(dec_flags_t f);
+static INLINE int t1_getctxno_mag(dec_flags_t f);
+static char t1_getspb(dec_flags_t f);
 static short t1_getnmsedec_sig(int x, int bitpos);
 static short t1_getnmsedec_ref(int x, int bitpos);
 static void t1_dec_updateflags(dec_flags_t *dec_flagsp, int s, int dec_stride);
@@ -285,21 +285,21 @@ static void t1_decode_cblk(
 
 /* ----------------------------------------------------------------------- */
 
-static char t1_getctxno_zc(int f, int orient) {
+static char t1_getctxno_zc(dec_flags_t f, int orient) {
 	return lut_ctxno_zc[(orient << 8) | (f & T1_SIG_OTH)];
 }
 
-static char t1_getctxno_sc(int f) {
+static char t1_getctxno_sc(dec_flags_t f) {
 	return lut_ctxno_sc[(f & (T1_SIG_PRIM | T1_SGN)) >> 4];
 }
 
-static int t1_getctxno_mag(int f) {
+static int t1_getctxno_mag(dec_flags_t f) {
 	int tmp1 = (f & T1_SIG_OTH) ? T1_CTXNO_MAG + 1 : T1_CTXNO_MAG;
 	int tmp2 = (f & T1_REFINE) ? T1_CTXNO_MAG + 2 : tmp1;
 	return (tmp2);
 }
 
-static char t1_getspb(int f) {
+static char t1_getspb(dec_flags_t f) {
 	return lut_spb[(f & (T1_SIG_PRIM | T1_SGN)) >> 4];
 }
 
