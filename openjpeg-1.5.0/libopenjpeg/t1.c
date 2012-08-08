@@ -123,7 +123,6 @@ Encode refinement pass
 */
 static void t1_enc_refpass_step(
 		opj_t1_t *t1,
-		dec_flags_t *dec_flagsp,
 		enc_flags_t *enc_flagsp,
 		int ci,
 		int *datap,
@@ -879,8 +878,7 @@ static void t1_dec_sigpass_mqc_vsc(
 
 static void t1_enc_refpass_step(
 		opj_t1_t *t1,
-		dec_flags_t *dec_flagsp,
-		enc_flags_t *enc_flagsp,
+		enc_flags_t *flagsp,
 		int ci,
 		int *datap,
 		int bpno,
@@ -897,17 +895,17 @@ static void t1_enc_refpass_step(
 	   flag = vsc ? ((*dec_flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*dec_flagsp);
 	*/
 
-	enc_flags_t shift_flags = *enc_flagsp >> (ci * 3);
+	enc_flags_t shift_flags = *flagsp >> (ci * 3);
 	if ((shift_flags & (T1_SIGMA_4 | T1_PI_0)) == T1_SIGMA_4) {
 		*nmsedec += t1_getnmsedec_ref(int_abs(*datap), bpno + T1_NMSEDEC_FRACBITS);
 		v = int_abs(*datap) & one ? 1 : 0;
-		mqc_setcurctx(mqc, t1_enc_getctxno_mag(*enc_flagsp, ci));	/* ESSAI */
+		mqc_setcurctx(mqc, t1_enc_getctxno_mag(*flagsp, ci));	/* ESSAI */
 		if (type == T1_TYPE_RAW) {	/* BYPASS/LAZY MODE */
 			mqc_bypass_enc(mqc, v);
 		} else {
 			mqc_encode(mqc, v);
 		}
-		*enc_flagsp |= T1_MU_0 << (ci * 3);
+		*flagsp |= T1_MU_0 << (ci * 3);
 	}
 }
 
@@ -991,7 +989,6 @@ static void t1_enc_refpass(
 				vsc = ((cblksty & J2K_CCP_CBLKSTY_VSC) && (j == k + 3 || j == t1->h - 1)) ? 1 : 0;
 				t1_enc_refpass_step(
 						t1,
-						&t1->dec_flags[((j+1) * t1->dec_flags_stride) + i + 1],
 						&ENC_FLAGS(i, k),
 						j - k,
 						&t1->data[(j * t1->w) + i],
