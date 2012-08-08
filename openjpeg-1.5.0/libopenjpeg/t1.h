@@ -157,6 +157,7 @@ in T1.C are used by some function in TCD.C.
 #define T1_SIGMA_SW   T1_SIGMA_6
 #define T1_SIGMA_S    T1_SIGMA_7
 #define T1_SIGMA_SE   T1_SIGMA_8
+#define T1_SIGMA_NEIGHBOURS (T1_SIGMA_NW | T1_SIGMA_N | T1_SIGMA_NE | T1_SIGMA_W | T1_SIGMA_E | T1_SIGMA_SW | T1_SIGMA_S | T1_SIGMA_SE)
 
 #define T1_CHI_THIS   T1_CHI_1
 #define T1_MU_THIS    T1_MU_0

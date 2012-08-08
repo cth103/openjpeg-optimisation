@@ -30,6 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <assert.h>
 #include "opj_includes.h"
 #include "t1_luts.h"
 
@@ -41,11 +42,11 @@
 /** @name Local static functions */
 /*@{*/
 
-static INLINE char t1_enc_getctxno_zc(dec_flags_t f, int orient);
+static INLINE char t1_enc_getctxno_zc(dec_flags_t f, int orient, enc_flags_t fX, int ci);
 static INLINE char t1_dec_getctxno_zc(dec_flags_t f, int orient);
 static char t1_enc_getctxno_sc(dec_flags_t f, enc_flags_t fX, enc_flags_t pfX, enc_flags_t nfX, int ci);
 static char t1_dec_getctxno_sc(dec_flags_t f);
-static INLINE int t1_enc_getctxno_mag(dec_flags_t f);
+static INLINE int t1_enc_getctxno_mag(dec_flags_t f, enc_flags_t fX, int ci);
 static INLINE int t1_dec_getctxno_mag(dec_flags_t f);
 static char t1_enc_getspb(dec_flags_t f, enc_flags_t fX, enc_flags_t pfX, enc_flags_t nfX, int ci);
 static char t1_dec_getspb(dec_flags_t f);
@@ -289,7 +290,43 @@ static void t1_decode_cblk(
 
 /* ----------------------------------------------------------------------- */
 
-static char t1_getctxno_zc(dec_flags_t f, int orient) {
+static char t1_dec_getctxno_zc(dec_flags_t f, int orient) {
+	return lut_ctxno_zc[(orient << 8) | (f & T1_SIG_OTH)];
+}
+
+static char t1_enc_getctxno_zc(dec_flags_t f, int orient, enc_flags_t fX, int ci) {
+
+	dec_flags_t ff = 0;
+	enc_flags_t shift_flags = fX >> (ci * 3);
+
+	if (shift_flags & T1_SIGMA_NW) {
+		ff |= T1_SIG_NW;
+	}
+	if (shift_flags & T1_SIGMA_N) {
+		ff |= T1_SIG_N;
+	}
+	if (shift_flags & T1_SIGMA_NE) {
+		ff |= T1_SIG_NE;
+	}
+	if (shift_flags & T1_SIGMA_E) {
+		ff |= T1_SIG_E;
+	}
+	if (shift_flags & T1_SIGMA_SE) {
+		ff |= T1_SIG_SE;
+	}
+	if (shift_flags & T1_SIGMA_S) {
+		ff |= T1_SIG_S;
+	}
+	if (shift_flags & T1_SIGMA_SW) {
+		ff |= T1_SIG_SW;
+	}
+	if (shift_flags & T1_SIGMA_W) {
+		ff |= T1_SIG_W;
+	}
+
+	/* CHECK */
+//	assert (ff == (f & T1_SIG_OTH));
+
 	return lut_ctxno_zc[(orient << 8) | (f & T1_SIG_OTH)];
 }
 
@@ -381,10 +418,23 @@ static char t1_dec_getctxno_sc(dec_flags_t f) {
 	return lut_ctxno_sc[(f & (T1_SIG_PRIM | T1_SGN)) >> 4];
 }
 
-static int t1_getctxno_mag(dec_flags_t f) {
+static int t1_dec_getctxno_mag(dec_flags_t f) {
 	int tmp1 = (f & T1_SIG_OTH) ? T1_CTXNO_MAG + 1 : T1_CTXNO_MAG;
 	int tmp2 = (f & T1_REFINE) ? T1_CTXNO_MAG + 2 : tmp1;
 	return (tmp2);
+}
+
+static int t1_enc_getctxno_mag(dec_flags_t f, enc_flags_t ff, int ci) {
+
+	enc_flags_t shift_flags = ff >> (ci * 3);
+	
+	int tmp = (shift_flags & T1_SIGMA_NEIGHBOURS) ? T1_CTXNO_MAG + 1 : T1_CTXNO_MAG;
+	int tmp2 = (shift_flags & T1_MU_0) ? T1_CTXNO_MAG + 2 : tmp;
+
+	/* CHECK */
+//	assert (tmp2 == t1_dec_getctxno_mag (f));
+
+	return t1_dec_getctxno_mag (f);
 }
 
 static char t1_dec_getspb(dec_flags_t f) {
@@ -620,7 +670,7 @@ static void t1_enc_sigpass_step(
 	
 	if ((flag & T1_SIG_OTH) && !(flag & (T1_SIG | T1_VISIT))) {
 		v = int_abs(*datap) & one ? 1 : 0;
-		mqc_setcurctx(mqc, t1_getctxno_zc(flag, orient));	/* ESSAI */
+		mqc_setcurctx(mqc, t1_enc_getctxno_zc(flag, orient, *enc_flagsp, ci));	/* ESSAI */
 		if (type == T1_TYPE_RAW) {	/* BYPASS/LAZY MODE */
 			mqc_bypass_enc(mqc, v);
 		} else {
@@ -629,7 +679,7 @@ static void t1_enc_sigpass_step(
 		if (v) {
 			v = *datap < 0 ? 1 : 0;
 			*nmsedec +=	t1_getnmsedec_sig(int_abs(*datap), bpno + T1_NMSEDEC_FRACBITS);
-			mqc_setcurctx(mqc, t1_getctxno_sc(flag, *enc_flagsp, enc_flagsp[-1], enc_flagsp[1], ci));	/* ESSAI */
+			mqc_setcurctx(mqc, t1_enc_getctxno_sc(flag, *enc_flagsp, enc_flagsp[-1], enc_flagsp[1], ci));	/* ESSAI */
 			if (type == T1_TYPE_RAW) {	/* BYPASS/LAZY MODE */
 				mqc_bypass_enc(mqc, v);
 			} else {
@@ -678,10 +728,10 @@ static INLINE void t1_dec_sigpass_step_mqc(
 	
 	flag = *flagsp;
 	if ((flag & T1_SIG_OTH) && !(flag & (T1_SIG | T1_VISIT))) {
-			mqc_setcurctx(mqc, t1_getctxno_zc(flag, orient));
+			mqc_setcurctx(mqc, t1_dec_getctxno_zc(flag, orient));
 			if (mqc_decode(mqc)) {
 				mqc_setcurctx(mqc, t1_dec_getctxno_sc(flag));
-				v = mqc_decode(mqc) ^ t1_getspb(flag);
+				v = mqc_decode(mqc) ^ t1_dec_getspb(flag);
 				*datap = v ? -oneplushalf : oneplushalf;
 				t1_dec_updateflags(flagsp, v, t1->dec_flags_stride);
 			}
@@ -703,10 +753,10 @@ static INLINE void t1_dec_sigpass_step_mqc_vsc(
 	
 	flag = vsc ? ((*flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*flagsp);
 	if ((flag & T1_SIG_OTH) && !(flag & (T1_SIG | T1_VISIT))) {
-		mqc_setcurctx(mqc, t1_getctxno_zc(flag, orient));
+		mqc_setcurctx(mqc, t1_dec_getctxno_zc(flag, orient));
 		if (mqc_decode(mqc)) {
-			mqc_setcurctx(mqc, t1_getctxno_sc(flag));
-			v = mqc_decode(mqc) ^ t1_getspb(flag);
+			mqc_setcurctx(mqc, t1_dec_getctxno_sc(flag));
+			v = mqc_decode(mqc) ^ t1_dec_getspb(flag);
 			*datap = v ? -oneplushalf : oneplushalf;
 			t1_dec_updateflags(flagsp, v, t1->dec_flags_stride);
 		}
@@ -859,7 +909,7 @@ static void t1_enc_refpass_step(
 	if ((flag & (T1_SIG | T1_VISIT)) == T1_SIG) {
 		*nmsedec += t1_getnmsedec_ref(int_abs(*datap), bpno + T1_NMSEDEC_FRACBITS);
 		v = int_abs(*datap) & one ? 1 : 0;
-		mqc_setcurctx(mqc, t1_getctxno_mag(flag));	/* ESSAI */
+		mqc_setcurctx(mqc, t1_enc_getctxno_mag(flag, *enc_flagsp, ci));	/* ESSAI */
 		if (type == T1_TYPE_RAW) {	/* BYPASS/LAZY MODE */
 			mqc_bypass_enc(mqc, v);
 		} else {
@@ -903,7 +953,7 @@ static INLINE void t1_dec_refpass_step_mqc(
 	
 	flag = *flagsp;
 	if ((flag & (T1_SIG | T1_VISIT)) == T1_SIG) {
-		mqc_setcurctx(mqc, t1_getctxno_mag(flag));	/* ESSAI */
+		mqc_setcurctx(mqc, t1_dec_getctxno_mag(flag));	/* ESSAI */
 			v = mqc_decode(mqc);
 		t = v ? poshalf : neghalf;
 		*datap += *datap < 0 ? -t : t;
@@ -925,7 +975,7 @@ static INLINE void t1_dec_refpass_step_mqc_vsc(
 	
 	flag = vsc ? ((*flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*flagsp);
 	if ((flag & (T1_SIG | T1_VISIT)) == T1_SIG) {
-		mqc_setcurctx(mqc, t1_getctxno_mag(flag));	/* ESSAI */
+		mqc_setcurctx(mqc, t1_dec_getctxno_mag(flag));	/* ESSAI */
 		v = mqc_decode(mqc);
 		t = v ? poshalf : neghalf;
 		*datap += *datap < 0 ? -t : t;
@@ -1077,15 +1127,15 @@ static void t1_enc_clnpass_step(
 		goto LABEL_PARTIAL;
 	}
 	if (!(*dec_flagsp & (T1_SIG | T1_VISIT))) {
-		mqc_setcurctx(mqc, t1_getctxno_zc(flag, orient));
+		mqc_setcurctx(mqc, t1_enc_getctxno_zc(flag, orient, *enc_flagsp, ci));
 		v = int_abs(*datap) & one ? 1 : 0;
 		mqc_encode(mqc, v);
 		if (v) {
 LABEL_PARTIAL:
 			*nmsedec += t1_getnmsedec_sig(int_abs(*datap), bpno + T1_NMSEDEC_FRACBITS);
-			mqc_setcurctx(mqc, t1_getctxno_sc(flag));
+			mqc_setcurctx(mqc, t1_enc_getctxno_sc(flag, *enc_flagsp, enc_flagsp[-1], enc_flagsp[1], ci));
 			v = *datap < 0 ? 1 : 0;
-			mqc_encode(mqc, v ^ t1_getspb(flag));
+			mqc_encode(mqc, v ^ t1_enc_getspb(flag, *enc_flagsp, enc_flagsp[-1], enc_flagsp[1], ci));
 			t1_enc_updateflags(dec_flagsp, enc_flagsp, ci, v, t1->dec_flags_stride, t1->enc_flags_stride);
 		}
 	}
@@ -1105,8 +1155,8 @@ static void t1_dec_clnpass_step_partial(
 	OPJ_ARG_NOT_USED(orient);
 	
 	flag = *flagsp;
-	mqc_setcurctx(mqc, t1_getctxno_sc(flag));
-	v = mqc_decode(mqc) ^ t1_getspb(flag);
+	mqc_setcurctx(mqc, t1_dec_getctxno_sc(flag));
+	v = mqc_decode(mqc) ^ t1_dec_getspb(flag);
 	*datap = v ? -oneplushalf : oneplushalf;
 	t1_dec_updateflags(flagsp, v, t1->dec_flags_stride);
 	*flagsp &= ~T1_VISIT;
@@ -1125,10 +1175,10 @@ static void t1_dec_clnpass_step(
 	
 	flag = *flagsp;
 	if (!(flag & (T1_SIG | T1_VISIT))) {
-		mqc_setcurctx(mqc, t1_getctxno_zc(flag, orient));
+		mqc_setcurctx(mqc, t1_dec_getctxno_zc(flag, orient));
 		if (mqc_decode(mqc)) {
-			mqc_setcurctx(mqc, t1_getctxno_sc(flag));
-			v = mqc_decode(mqc) ^ t1_getspb(flag);
+			mqc_setcurctx(mqc, t1_dec_getctxno_sc(flag));
+			v = mqc_decode(mqc) ^ t1_dec_getspb(flag);
 			*datap = v ? -oneplushalf : oneplushalf;
 			t1_dec_updateflags(flagsp, v, t1->dec_flags_stride);
 		}
@@ -1154,11 +1204,11 @@ static void t1_dec_clnpass_step_vsc(
 		goto LABEL_PARTIAL;
 	}
 	if (!(flag & (T1_SIG | T1_VISIT))) {
-		mqc_setcurctx(mqc, t1_getctxno_zc(flag, orient));
+		mqc_setcurctx(mqc, t1_dec_getctxno_zc(flag, orient));
 		if (mqc_decode(mqc)) {
 LABEL_PARTIAL:
-			mqc_setcurctx(mqc, t1_getctxno_sc(flag));
-			v = mqc_decode(mqc) ^ t1_getspb(flag);
+			mqc_setcurctx(mqc, t1_dec_getctxno_sc(flag));
+			v = mqc_decode(mqc) ^ t1_dec_getspb(flag);
 			*datap = v ? -oneplushalf : oneplushalf;
 			t1_dec_updateflags(flagsp, v, t1->dec_flags_stride);
 		}
