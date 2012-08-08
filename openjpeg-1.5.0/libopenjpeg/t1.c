@@ -341,6 +341,62 @@ static void t1_enc_updateflags(dec_flags_t *dec_flagsp, enc_flags_t *enc_flagsp,
 	sp[-1] |= T1_SIG_NE;
 	sp[0]  |= mod[s+6];
 	sp[1]  |= T1_SIG_NW;
+
+	/* mark target as significant */
+	*enc_flagsp |= T1_SIGMA_4 << (3 * ci);
+	
+	if (ci == 0) {
+		int* n = enc_flagsp - enc_stride;
+		*n |= T1_SIGMA_16;
+		int* nw = n - 1;
+		*nw |= T1_SIGMA_17;
+		int* ne = n + 1;
+		*ne |= T1_SIGMA_15;
+	}
+	
+	/* south-west, south, south-east */
+	if (ci == 3) {
+		int* s = enc_flagsp + enc_stride;
+		*s |= T1_SIGMA_1;
+		int* sw = s - 1;
+		*sw |= T1_SIGMA_2;
+		int* se = s + 1;
+		*se |= T1_SIGMA_0;
+	}
+	
+	/* east */
+	enc_flagsp[-1] |= T1_SIGMA_5 << (3 * ci);
+	
+	/* west */
+	enc_flagsp[1] |= T1_SIGMA_3 << (3 * ci);
+	
+	if (s) {
+		
+		switch (ci) {
+		case 0:
+		{
+			*enc_flagsp |= T1_CHI_1;
+			int* n = enc_flagsp - enc_stride;
+			*n |= T1_CHI_5;
+			break;
+		}
+		case 1:
+			*enc_flagsp |= T1_CHI_2;
+			break;
+		case 2:
+			*enc_flagsp |= T1_CHI_3;
+			break;
+		case 3:
+		{
+			*enc_flagsp |= T1_CHI_4;
+			int* s = enc_flagsp + enc_stride;
+			*s |= T1_CHI_0;
+			break;
+		}
+		
+		}
+	}
+	
 }
 
 static void t1_dec_updateflags(dec_flags_t *flagsp, int s, int stride) {
