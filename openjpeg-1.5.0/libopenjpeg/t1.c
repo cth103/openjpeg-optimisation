@@ -677,7 +677,6 @@ static void t1_enc_sigpass_step(
 			}
 			t1_enc_updateflags(dec_flagsp, enc_flagsp, ci, v, t1->dec_flags_stride, t1->enc_flags_stride);
 		}
-		*dec_flagsp |= T1_VISIT;
 		*enc_flagsp |= T1_PI_0 << (ci * 3);
 	}
 }
