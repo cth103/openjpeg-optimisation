@@ -41,10 +41,14 @@
 /** @name Local static functions */
 /*@{*/
 
-static INLINE char t1_getctxno_zc(dec_flags_t f, int orient);
-static char t1_getctxno_sc(dec_flags_t f);
-static INLINE int t1_getctxno_mag(dec_flags_t f);
-static char t1_getspb(dec_flags_t f);
+static INLINE char t1_enc_getctxno_zc(dec_flags_t f, int orient);
+static INLINE char t1_dec_getctxno_zc(dec_flags_t f, int orient);
+static char t1_enc_getctxno_sc(dec_flags_t f, enc_flags_t fX, enc_flags_t pfX, enc_flags_t nfX, int ci);
+static char t1_dec_getctxno_sc(dec_flags_t f);
+static INLINE int t1_enc_getctxno_mag(dec_flags_t f);
+static INLINE int t1_dec_getctxno_mag(dec_flags_t f);
+static char t1_enc_getspb(dec_flags_t f, enc_flags_t fX, enc_flags_t pfX, enc_flags_t nfX, int ci);
+static char t1_dec_getspb(dec_flags_t f);
 static short t1_getnmsedec_sig(int x, int bitpos);
 static short t1_getnmsedec_ref(int x, int bitpos);
 static void t1_dec_updateflags(dec_flags_t *dec_flagsp, int s, int dec_stride);
@@ -289,7 +293,91 @@ static char t1_getctxno_zc(dec_flags_t f, int orient) {
 	return lut_ctxno_zc[(orient << 8) | (f & T1_SIG_OTH)];
 }
 
-static char t1_getctxno_sc(dec_flags_t f) {
+static char t1_enc_getctxno_sc(dec_flags_t f, enc_flags_t fX, enc_flags_t pfX, enc_flags_t nfX, int ci) {
+
+	enc_flags_t tfX = fX >> (ci * 3);
+	
+	dec_flags_t ff = 0;
+
+	if (tfX & T1_SIGMA_1) {
+		ff |= T1_SIG_N;
+	}
+	if (tfX & T1_SIGMA_3) {
+		ff |= T1_SIG_W;
+	}
+	if (tfX & T1_SIGMA_5) {
+		ff |= T1_SIG_E;
+	}
+	if (tfX & T1_SIGMA_7) {
+		ff |= T1_SIG_S;
+	}
+
+	switch (ci) {
+	case 0:
+		if (fX & T1_CHI_0) {
+			ff |= T1_SGN_N;
+		}
+		if (fX & T1_CHI_2) {
+			ff |= T1_SGN_S;
+		}
+		if (pfX & T1_CHI_1) {
+			ff |= T1_SGN_W;
+		}
+		if (nfX & T1_CHI_1) {
+			ff |= T1_SGN_E;
+		}
+		break;
+	case 1:
+		if (fX & T1_CHI_1) {
+			ff |= T1_SGN_N;
+		}
+		if (fX & T1_CHI_3) {
+			ff |= T1_SGN_S;
+		}
+		if (pfX & T1_CHI_2) {
+			ff |= T1_SGN_W;
+		}
+		if (nfX & T1_CHI_2) {
+			ff |= T1_SGN_E;
+		}
+		break;
+	case 2:
+		if (fX & T1_CHI_2) {
+			ff |= T1_SGN_N;
+		}
+		if (fX & T1_CHI_4) {
+			ff |= T1_SGN_S;
+		}
+		if (pfX & T1_CHI_3) {
+			ff |= T1_SGN_W;
+		}
+		if (nfX & T1_CHI_3) {
+			ff |= T1_SGN_E;
+		}
+		break;
+	case 3:
+		if (fX & T1_CHI_3) {
+			ff |= T1_SGN_N;
+		}
+		if (fX & T1_CHI_5) {
+			ff |= T1_SGN_S;
+		}
+		if (pfX & T1_CHI_4) {
+			ff |= T1_SGN_W;
+		}
+		if (nfX & T1_CHI_4) {
+			ff |= T1_SGN_E;
+		}
+		break;
+	}
+
+	/* CHECK */
+//	assert ((ff & (T1_SIG_PRIM | T1_SGN)) == (f & (T1_SIG_PRIM | T1_SGN)));
+	
+	return lut_ctxno_sc[(f & (T1_SIG_PRIM | T1_SGN)) >> 4];
+}
+
+static char t1_dec_getctxno_sc(dec_flags_t f) {
 	return lut_ctxno_sc[(f & (T1_SIG_PRIM | T1_SGN)) >> 4];
 }
 
@@ -299,8 +387,92 @@ static int t1_getctxno_mag(dec_flags_t f) {
 	return (tmp2);
 }
 
-static char t1_getspb(dec_flags_t f) {
+static char t1_dec_getspb(dec_flags_t f) {
 	return lut_spb[(f & (T1_SIG_PRIM | T1_SGN)) >> 4];
+}
+
+static char t1_enc_getspb(dec_flags_t f, enc_flags_t fX, enc_flags_t pfX, enc_flags_t nfX, int ci)
+{
+	enc_flags_t tfX = fX >> (ci * 3);
+	
+	dec_flags_t ff = 0;
+
+	if (tfX & T1_SIGMA_1) {
+		ff |= T1_SIG_N;
+	}
+	if (tfX & T1_SIGMA_3) {
+		ff |= T1_SIG_W;
+	}
+	if (tfX & T1_SIGMA_5) {
+		ff |= T1_SIG_E;
+	}
+	if (tfX & T1_SIGMA_7) {
+		ff |= T1_SIG_S;
+	}
+
+	switch (ci) {
+	case 0:
+		if (fX & T1_CHI_0) {
+			ff |= T1_SGN_N;
+		}
+		if (fX & T1_CHI_2) {
+			ff |= T1_SGN_S;
+		}
+		if (pfX & T1_CHI_1) {
+			ff |= T1_SGN_W;
+		}
+		if (nfX & T1_CHI_1) {
+			ff |= T1_SGN_E;
+		}
+		break;
+	case 1:
+		if (fX & T1_CHI_1) {
+			ff |= T1_SGN_N;
+		}
+		if (fX & T1_CHI_3) {
+			ff |= T1_SGN_S;
+		}
+		if (pfX & T1_CHI_2) {
+			ff |= T1_SGN_W;
+		}
+		if (nfX & T1_CHI_2) {
+			ff |= T1_SGN_E;
+		}
+		break;
+	case 2:
+		if (fX & T1_CHI_2) {
+			ff |= T1_SGN_N;
+		}
+		if (fX & T1_CHI_4) {
+			ff |= T1_SGN_S;
+		}
+		if (pfX & T1_CHI_3) {
+			ff |= T1_SGN_W;
+		}
+		if (nfX & T1_CHI_3) {
+			ff |= T1_SGN_E;
+		}
+		break;
+	case 3:
+		if (fX & T1_CHI_3) {
+			ff |= T1_SGN_N;
+		}
+		if (fX & T1_CHI_5) {
+			ff |= T1_SGN_S;
+		}
+		if (pfX & T1_CHI_4) {
+			ff |= T1_SGN_W;
+		}
+		if (nfX & T1_CHI_4) {
+			ff |= T1_SGN_E;
+		}
+		break;
+	}
+
+	/* CHECK */
+	assert ((f & (T1_SIG_PRIM | T1_SGN)) == ff);
+
+	return lut_spb[ff >> 4];
 }
 
 static short t1_getnmsedec_sig(int x, int bitpos) {
@@ -436,11 +608,16 @@ static void t1_enc_sigpass_step(
 		char type,
 		int vsc)
 {
-	int v, flag;
+	int v;
+	dec_flags_t flag;
+	enc_flags_t flagX;
 	
 	opj_mqc_t *mqc = t1->mqc;	/* MQC component */
 	
 	flag = vsc ? ((*dec_flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*dec_flagsp);
+
+	/* XXX:TODO enc_flags_t and vsc mode */
+	
 	if ((flag & T1_SIG_OTH) && !(flag & (T1_SIG | T1_VISIT))) {
 		v = int_abs(*datap) & one ? 1 : 0;
 		mqc_setcurctx(mqc, t1_getctxno_zc(flag, orient));	/* ESSAI */
@@ -452,11 +629,11 @@ static void t1_enc_sigpass_step(
 		if (v) {
 			v = *datap < 0 ? 1 : 0;
 			*nmsedec +=	t1_getnmsedec_sig(int_abs(*datap), bpno + T1_NMSEDEC_FRACBITS);
-			mqc_setcurctx(mqc, t1_getctxno_sc(flag));	/* ESSAI */
+			mqc_setcurctx(mqc, t1_getctxno_sc(flag, *enc_flagsp, enc_flagsp[-1], enc_flagsp[1], ci));	/* ESSAI */
 			if (type == T1_TYPE_RAW) {	/* BYPASS/LAZY MODE */
 				mqc_bypass_enc(mqc, v);
 			} else {
-				mqc_encode(mqc, v ^ t1_getspb(flag));
+				mqc_encode(mqc, v ^ t1_enc_getspb(flag, *enc_flagsp, enc_flagsp[-1], enc_flagsp[1], ci));
 			}
 			t1_enc_updateflags(dec_flagsp, enc_flagsp, ci, v, t1->dec_flags_stride, t1->enc_flags_stride);
 		}
@@ -503,7 +680,7 @@ static INLINE void t1_dec_sigpass_step_mqc(
 	if ((flag & T1_SIG_OTH) && !(flag & (T1_SIG | T1_VISIT))) {
 			mqc_setcurctx(mqc, t1_getctxno_zc(flag, orient));
 			if (mqc_decode(mqc)) {
-				mqc_setcurctx(mqc, t1_getctxno_sc(flag));
+				mqc_setcurctx(mqc, t1_dec_getctxno_sc(flag));
 				v = mqc_decode(mqc) ^ t1_getspb(flag);
 				*datap = v ? -oneplushalf : oneplushalf;
 				t1_dec_updateflags(flagsp, v, t1->dec_flags_stride);
