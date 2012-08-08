@@ -409,9 +409,9 @@ static char t1_enc_getctxno_sc(dec_flags_t f, enc_flags_t fX, enc_flags_t pfX, e
 	}
 
 	/* CHECK */
-//	assert ((ff & (T1_SIG_PRIM | T1_SGN)) == (f & (T1_SIG_PRIM | T1_SGN)));
+	assert ((ff & (T1_SIG_PRIM | T1_SGN)) == (f & (T1_SIG_PRIM | T1_SGN)));
 	
-	return lut_ctxno_sc[(f & (T1_SIG_PRIM | T1_SGN)) >> 4];
+	return lut_ctxno_sc[ff >> 4];
 }
 
 static char t1_dec_getctxno_sc(dec_flags_t f) {
