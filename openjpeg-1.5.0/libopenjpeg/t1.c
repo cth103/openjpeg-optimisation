@@ -897,7 +897,9 @@ static void t1_enc_refpass_step(
 	opj_mqc_t *mqc = t1->mqc;	/* MQC component */
 	
 	flag = vsc ? ((*dec_flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*dec_flagsp);
-	if ((flag & (T1_SIG | T1_VISIT)) == T1_SIG) {
+
+	enc_flags_t shift_flags = *enc_flagsp >> (ci * 3);
+	if ((shift_flags & (T1_SIGMA_4 | T1_PI_0)) == T1_SIGMA_4) {
 		*nmsedec += t1_getnmsedec_ref(int_abs(*datap), bpno + T1_NMSEDEC_FRACBITS);
 		v = int_abs(*datap) & one ? 1 : 0;
 		mqc_setcurctx(mqc, t1_enc_getctxno_mag(*enc_flagsp, ci));	/* ESSAI */
