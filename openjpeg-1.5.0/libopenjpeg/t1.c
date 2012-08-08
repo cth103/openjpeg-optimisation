@@ -325,7 +325,7 @@ static char t1_enc_getctxno_zc(dec_flags_t f, int orient, enc_flags_t fX, int ci
 	}
 
 	/* CHECK */
-//	assert (ff == (f & T1_SIG_OTH));
+	assert (ff == (f & T1_SIG_OTH));
 
 	return lut_ctxno_zc[(orient << 8) | (f & T1_SIG_OTH)];
 }
