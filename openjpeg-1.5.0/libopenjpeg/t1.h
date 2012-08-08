@@ -83,9 +83,90 @@ in T1.C are used by some function in TCD.C.
 #define T1_TYPE_MQ 0	/**< Normal coding using entropy coder */
 #define T1_TYPE_RAW 1	/**< No encoding the information is store under raw format in codestream (mode switch RAW)*/
 
+/** We hold the state of individual data points for the T1 encoder using
+ *  a single 32-bit flags word to hold the state of 4 data points.  This corresponds
+ *  to the 4-point-high columns that the data is processed in.
+ *
+ *  These #defines declare the layout of a 32-bit flags word.
+ *
+ *  This is currently done for encoding only.
+ */
+
+#define T1_SIGMA_0  (1 << 0)
+#define T1_SIGMA_1  (1 << 1)
+#define T1_SIGMA_2  (1 << 2)
+#define T1_SIGMA_3  (1 << 3)
+#define T1_SIGMA_4  (1 << 4)
+#define T1_SIGMA_5  (1 << 5)
+#define T1_SIGMA_6  (1 << 6)
+#define T1_SIGMA_7  (1 << 7)
+#define T1_SIGMA_8  (1 << 8)
+#define T1_SIGMA_9  (1 << 9)
+#define T1_SIGMA_10 (1 << 10)
+#define T1_SIGMA_11 (1 << 11)
+#define T1_SIGMA_12 (1 << 12)
+#define T1_SIGMA_13 (1 << 13)
+#define T1_SIGMA_14 (1 << 14)
+#define T1_SIGMA_15 (1 << 15)
+#define T1_SIGMA_16 (1 << 16)
+#define T1_SIGMA_17 (1 << 17)
+
+#define T1_CHI_0    (1 << 18)
+#define T1_CHI_1    (1 << 19)
+#define T1_MU_0     (1 << 20)
+#define T1_PI_0     (1 << 21)
+#define T1_CHI_2    (1 << 22)
+#define T1_MU_1     (1 << 23)
+#define T1_PI_1     (1 << 24)
+#define T1_CHI_3    (1 << 25)
+#define T1_MU_2     (1 << 26)
+#define T1_PI_2     (1 << 27)
+#define T1_CHI_4    (1 << 28)
+#define T1_MU_3     (1 << 29)
+#define T1_PI_3     (1 << 30)
+#define T1_PI_3     (1 << 30)
+#define T1_CHI_5    (1 << 31)
+
+
+/** As an example, the bits T1_SIGMA_3, T1_SIGMA_4 and T1_SIGMA_5
+ *  indicate the significance state of the west neighbour of data point zero
+ *  our four, the point itself, and its east neighbour respectively.
+ *  Many of the bits are arranged so that given a flags word, you can
+ *  look at the values for the data point 0, then shift the flags
+ *  word right by 3 bits and look at the same bit positions to see the
+ *  values for data point 1.
+ *
+ *  The #defines below help a bit with this; say you have a flags word
+ *  f, you can do things like
+ *
+ *  (f & T1_SIGMA_THIS)
+ *
+ *  to see the significance bit of data point 0, then do
+ *
+ *  ((f >> 3) & T1_SIGMA_THIS)
+ *
+ *  to see the significance bit of data point 1.
+ */
+
+#define T1_SIGMA_NW   T1_SIGMA_0
+#define T1_SIGMA_N    T1_SIGMA_1
+#define T1_SIGMA_NE   T1_SIGMA_2
+#define T1_SIGMA_W    T1_SIGMA_3
+#define T1_SIGMA_THIS T1_SIGMA_4
+#define T1_SIGMA_E    T1_SIGMA_5
+#define T1_SIGMA_SW   T1_SIGMA_6
+#define T1_SIGMA_S    T1_SIGMA_7
+#define T1_SIGMA_SE   T1_SIGMA_8
+
+#define T1_CHI_THIS   T1_CHI_1
+#define T1_MU_THIS    T1_MU_0
+#define T1_PI_THIS    T1_PI_0
+
+
 /* ----------------------------------------------------------------------- */
 
-typedef short flag_t;
+typedef short dec_flags_t;
+typedef unsigned int enc_flags_t;
 
 /**
 Tier-1 coding (coding of code-block coefficients)
@@ -100,15 +181,18 @@ typedef struct opj_t1 {
 	opj_raw_t *raw;
 
 	int *data;
-	flag_t *flags;
+	dec_flags_t *dec_flags;
+	enc_flags_t *enc_flags;
 	int w;
 	int h;
 	int datasize;
-	int flagssize;
-	int flags_stride;
+	int dec_flags_size;
+	int enc_flags_size;
+	int dec_flags_stride;
+	int enc_flags_stride;
 } opj_t1_t;
 
-#define MACRO_t1_flags(x,y) t1->flags[((x)*(t1->flags_stride))+(y)]
+#define MACRO_t1_flags(x,y) t1->dec_flags[((x)*(t1->dec_flags_stride))+(y)]
 
 /** @name Exported functions */
 /*@{*/
