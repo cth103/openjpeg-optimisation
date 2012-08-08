@@ -1,0 +1,25 @@
+#!/bin/bash
+
+cd openjpeg-1.5.0
+make -j4
+if [ "$?" != "0" ]; then
+  exit 1
+fi
+cd ..
+
+openjpeg-1.5.0/applications/codec/image_to_j2k -i ref.png -o check.j2c
+diff ref.j2c check.j2c
+if [ "$?" != "0" ]; then
+  echo "Encode: FAIL"
+  exit 1
+fi
+echo "Encode: OK"
+
+openjpeg-1.5.0/applications/codec/j2k_to_image -i ref.j2c -o check.png
+diff ref.png check.png
+if [ "$?" != "0" ]; then
+  echo "Decode: FAIL"
+  exit 1
+fi
+echo "Decode: OK"
+
