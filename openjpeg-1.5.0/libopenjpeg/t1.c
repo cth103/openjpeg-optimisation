@@ -53,13 +53,12 @@ static char t1_dec_getspb(dec_flags_t f);
 static short t1_getnmsedec_sig(int x, int bitpos);
 static short t1_getnmsedec_ref(int x, int bitpos);
 static void t1_dec_updateflags(dec_flags_t *dec_flagsp, int s, int dec_stride);
-static void t1_enc_updateflags(dec_flags_t *dec_flagsp, enc_flags_t *enc_flagsp, int ci, int s, int dec_stride, int enc_stride);
+static void t1_enc_updateflags(enc_flags_t *enc_flagsp, int ci, int s, int enc_stride);
 /**
 Encode significant pass
 */
 static void t1_enc_sigpass_step(
 		opj_t1_t *t1,
-		dec_flags_t *dec_flags,
 		enc_flags_t *enc_flagsp,
 		int ci,
 		int *datap,
@@ -182,7 +181,6 @@ Encode clean-up pass
 */
 static void t1_enc_clnpass_step(
 		opj_t1_t *t1,
-		dec_flags_t *dec_flagsp,
 		enc_flags_t *enc_flagsp,
 		int ci,
 		int *datap,
@@ -528,29 +526,8 @@ static short t1_getnmsedec_ref(int x, int bitpos) {
     return lut_nmsedec_ref0[x & ((1 << T1_NMSEDEC_BITS) - 1)];
 }
 
-static void t1_enc_updateflags(dec_flags_t *dec_flagsp, enc_flags_t *enc_flagsp, int ci, int s, int dec_stride, int enc_stride) {
-	dec_flags_t *np = dec_flagsp - dec_stride;
-	dec_flags_t *sp = dec_flagsp + dec_stride;
-
-	static const dec_flags_t mod[] = {
-		T1_SIG_S, T1_SIG_S|T1_SGN_S,
-		T1_SIG_E, T1_SIG_E|T1_SGN_E,
-		T1_SIG_W, T1_SIG_W|T1_SGN_W,
-		T1_SIG_N, T1_SIG_N|T1_SGN_N
-	};
-
-	np[-1] |= T1_SIG_SE;
-	np[0]  |= mod[s];
-	np[1]  |= T1_SIG_SW;
-
-	dec_flagsp[-1] |= mod[s+2];
-	dec_flagsp[0]  |= T1_SIG;
-	dec_flagsp[1]  |= mod[s+4];
-
-	sp[-1] |= T1_SIG_NE;
-	sp[0]  |= mod[s+6];
-	sp[1]  |= T1_SIG_NW;
-
+static void t1_enc_updateflags(enc_flags_t *enc_flagsp, int ci, int s, int enc_stride) {
+	
 	/* mark target as significant */
 	*enc_flagsp |= T1_SIGMA_4 << (3 * ci);
 	
@@ -634,7 +611,6 @@ static void t1_dec_updateflags(dec_flags_t *flagsp, int s, int stride) {
 
 static void t1_enc_sigpass_step(
 		opj_t1_t *t1,
-		dec_flags_t *dec_flagsp,
 		enc_flags_t *enc_flagsp,
 		int ci,
 		int *datap,
@@ -672,7 +648,7 @@ static void t1_enc_sigpass_step(
 			} else {
 				mqc_encode(mqc, v ^ t1_enc_getspb(*enc_flagsp, enc_flagsp[-1], enc_flagsp[1], ci));
 			}
-			t1_enc_updateflags(dec_flagsp, enc_flagsp, ci, v, t1->dec_flags_stride, t1->enc_flags_stride);
+			t1_enc_updateflags(enc_flagsp, ci, v, t1->enc_flags_stride);
 		}
 		*enc_flagsp |= T1_PI_0 << (ci * 3);
 	}
@@ -768,7 +744,6 @@ static void t1_enc_sigpass(
 				vsc = ((cblksty & J2K_CCP_CBLKSTY_VSC) && (j == k + 3 || j == t1->h - 1)) ? 1 : 0;
 				t1_enc_sigpass_step(
 						t1,
-						&t1->dec_flags[((j+1) * t1->dec_flags_stride) + i + 1],
 						&ENC_FLAGS(i, k),
 						j - k,
 						&t1->data[(j * t1->w) + i],
@@ -1096,7 +1071,6 @@ static void t1_dec_refpass_mqc_vsc(
 
 static void t1_enc_clnpass_step(
 		opj_t1_t *t1,
-		dec_flags_t *dec_flagsp,
 		enc_flags_t *enc_flagsp,
 		int ci,
 		int *datap,
@@ -1131,7 +1105,7 @@ LABEL_PARTIAL:
 			mqc_setcurctx(mqc, t1_enc_getctxno_sc(*enc_flagsp, enc_flagsp[-1], enc_flagsp[1], ci));
 			v = *datap < 0 ? 1 : 0;
 			mqc_encode(mqc, v ^ t1_enc_getspb(*enc_flagsp, enc_flagsp[-1], enc_flagsp[1], ci));
-			t1_enc_updateflags(dec_flagsp, enc_flagsp, ci, v, t1->dec_flags_stride, t1->enc_flags_stride);
+			t1_enc_updateflags(enc_flagsp, ci, v, t1->enc_flags_stride);
 		}
 	}
 	*enc_flagsp &= ~(T1_PI_0 << (3 * ci));
@@ -1228,16 +1202,14 @@ static void t1_enc_clnpass(
 		for (i = 0; i < t1->w; ++i) {
 			if (k + 3 < t1->h) {
 				if (cblksty & J2K_CCP_CBLKSTY_VSC) {
+					/* XXX:TODO this needs implementing */
 					agg = !(MACRO_t1_flags(1 + k,1 + i) & (T1_SIG | T1_VISIT | T1_SIG_OTH)
 						|| MACRO_t1_flags(1 + k + 1,1 + i) & (T1_SIG | T1_VISIT | T1_SIG_OTH)
 						|| MACRO_t1_flags(1 + k + 2,1 + i) & (T1_SIG | T1_VISIT | T1_SIG_OTH)
 						|| (MACRO_t1_flags(1 + k + 3,1 + i) 
 						& (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW |	T1_SGN_S))) & (T1_SIG | T1_VISIT | T1_SIG_OTH));
 				} else {
-					agg = !(MACRO_t1_flags(1 + k,1 + i) & (T1_SIG | T1_VISIT | T1_SIG_OTH)
-						|| MACRO_t1_flags(1 + k + 1,1 + i) & (T1_SIG | T1_VISIT | T1_SIG_OTH)
-						|| MACRO_t1_flags(1 + k + 2,1 + i) & (T1_SIG | T1_VISIT | T1_SIG_OTH)
-						|| MACRO_t1_flags(1 + k + 3,1 + i) & (T1_SIG | T1_VISIT | T1_SIG_OTH));
+					agg = !ENC_FLAGS(i, k);
 				}
 			} else {
 				agg = 0;
@@ -1262,7 +1234,6 @@ static void t1_enc_clnpass(
 				vsc = ((cblksty & J2K_CCP_CBLKSTY_VSC) && (j == k + 3 || j == t1->h - 1)) ? 1 : 0;
 				t1_enc_clnpass_step(
 						t1,
-						&t1->dec_flags[((j+1) * t1->dec_flags_stride) + i + 1],
 						&ENC_FLAGS(i, k),
 						j - k,
 						&t1->data[(j * t1->w) + i],
