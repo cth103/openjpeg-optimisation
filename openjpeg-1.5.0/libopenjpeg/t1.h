@@ -130,7 +130,7 @@ in T1.C are used by some function in TCD.C.
 
 /** As an example, the bits T1_SIGMA_3, T1_SIGMA_4 and T1_SIGMA_5
  *  indicate the significance state of the west neighbour of data point zero
- *  our four, the point itself, and its east neighbour respectively.
+ *  of our four, the point itself, and its east neighbour respectively.
  *  Many of the bits are arranged so that given a flags word, you can
  *  look at the values for the data point 0, then shift the flags
  *  word right by 3 bits and look at the same bit positions to see the

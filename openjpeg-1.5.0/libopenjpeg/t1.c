@@ -530,7 +530,8 @@ static void t1_enc_updateflags(enc_flags_t *enc_flagsp, int ci, int s, int enc_s
 	
 	/* mark target as significant */
 	*enc_flagsp |= T1_SIGMA_4 << (3 * ci);
-	
+
+	/* north-west, north, north-east */
 	if (ci == 0) {
 		enc_flags_t* n = enc_flagsp - enc_stride;
 		*n |= T1_SIGMA_16;
@@ -622,6 +623,11 @@ static void t1_enc_sigpass_step(
 		int vsc)
 {
 	int v;
+
+	if (*enc_flagsp == 0) {
+		/* Nothing to do for any of the 4 data points */
+		return;
+	}
 	
 	opj_mqc_t *mqc = t1->mqc;	/* MQC component */
 	
