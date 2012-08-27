@@ -869,6 +869,15 @@ static void t1_enc_refpass_step(
 		int vsc)
 {
 	int v;
+
+	if ((*flagsp & (T1_SIGMA_4 | T1_SIGMA_7 | T1_SIGMA_10 | T1_SIGMA_13)) == 0) {
+		/* none significant */
+		return;
+	}
+	if ((*flagsp & (T1_PI_0 | T1_PI_1 | T1_PI_2 | T1_PI_3)) == (T1_PI_0 | T1_PI_1 | T1_PI_2 | T1_PI_3)) {
+		/* all processed by sigpass */
+		return;
+	}
 	
 	opj_mqc_t *mqc = t1->mqc;	/* MQC component */
 	
