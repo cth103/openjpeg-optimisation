@@ -123,13 +123,13 @@ Encode refinement pass
 static void t1_enc_refpass_step(
 		opj_t1_t *t1,
 		enc_flags_t *enc_flagsp,
-		int ci,
 		int *datap,
 		int bpno,
 		int one,
 		int *nmsedec,
 		char type,
-		int vsc);
+		int x,
+		int y);
 /**
 Decode refinement pass
 */
@@ -834,15 +834,16 @@ static void t1_dec_sigpass_mqc_vsc(
 static void t1_enc_refpass_step(
 		opj_t1_t *t1,
 		enc_flags_t *flagsp,
-		int ci,
 		int *datap,
 		int bpno,
 		int one,
 		int *nmsedec,
 		char type,
-		int vsc)
+		int x,
+		int y)
 {
 	int v;
+	int ci;
 
 	if ((*flagsp & (T1_SIGMA_4 | T1_SIGMA_7 | T1_SIGMA_10 | T1_SIGMA_13)) == 0) {
 		/* none significant */
@@ -854,22 +855,28 @@ static void t1_enc_refpass_step(
 	}
 	
 	opj_mqc_t *mqc = t1->mqc;	/* MQC component */
-	
-	/* XXX:TODO vsc mode as per
-	   flag = vsc ? ((*dec_flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*dec_flagsp);
-	*/
 
-	enc_flags_t shift_flags = *flagsp >> (ci * 3);
-	if ((shift_flags & (T1_SIGMA_4 | T1_PI_0)) == T1_SIGMA_4) {
-		*nmsedec += t1_getnmsedec_ref(int_abs(*datap), bpno + T1_NMSEDEC_FRACBITS);
-		v = int_abs(*datap) & one ? 1 : 0;
-		mqc_setcurctx(mqc, t1_enc_getctxno_mag(*flagsp, ci));	/* ESSAI */
-		if (type == T1_TYPE_RAW) {	/* BYPASS/LAZY MODE */
-			mqc_bypass_enc(mqc, v);
-		} else {
-			mqc_encode(mqc, v);
+	for (ci = 0; ci < 4; ++ci) {
+	
+		/* XXX:TODO vsc mode as per
+		   vsc = ((cblksty & J2K_CCP_CBLKSTY_VSC) && (j == k + 3 || j == t1->h - 1)) ? 1 : 0;
+		   flag = vsc ? ((*dec_flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (*dec_flagsp);
+		*/
+		
+		enc_flags_t shift_flags = *flagsp >> (ci * 3);
+		if ((shift_flags & (T1_SIGMA_4 | T1_PI_0)) == T1_SIGMA_4) {
+			*nmsedec += t1_getnmsedec_ref(int_abs(*datap), bpno + T1_NMSEDEC_FRACBITS);
+			v = int_abs(*datap) & one ? 1 : 0;
+			mqc_setcurctx(mqc, t1_enc_getctxno_mag(*flagsp, ci));	/* ESSAI */
+			if (type == T1_TYPE_RAW) {	/* BYPASS/LAZY MODE */
+				mqc_bypass_enc(mqc, v);
+			} else {
+				mqc_encode(mqc, v);
+			}
+			*flagsp |= T1_MU_0 << (ci * 3);
 		}
-		*flagsp |= T1_MU_0 << (ci * 3);
+
+		datap += t1->w;
 	}
 }
 
@@ -944,24 +951,21 @@ static void t1_enc_refpass(
 		char type,
 		int cblksty)
 {
-	int i, j, k, one, vsc;
+	int i, j, k, one;
 	*nmsedec = 0;
 	one = 1 << (bpno + T1_NMSEDEC_FRACBITS);
 	for (k = 0; k < t1->h; k += 4) {
 		for (i = 0; i < t1->w; ++i) {
-			for (j = k; j < k + 4 && j < t1->h; ++j) {
-				vsc = ((cblksty & J2K_CCP_CBLKSTY_VSC) && (j == k + 3 || j == t1->h - 1)) ? 1 : 0;
-				t1_enc_refpass_step(
-						t1,
-						&ENC_FLAGS(i, k),
-						j - k,
-						&t1->data[(j * t1->w) + i],
-						bpno,
-						one,
-						nmsedec,
-						type,
-						vsc);
-			}
+			t1_enc_refpass_step(
+				t1,
+				&ENC_FLAGS(i, k),
+				&t1->data[(k * t1->w) + i],
+				bpno,
+				one,
+				nmsedec,
+				type,
+				i,
+				k);
 		}
 	}
 }
