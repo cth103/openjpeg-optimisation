@@ -189,6 +189,9 @@ static void t1_enc_clnpass_step(
 		int one,
 		int *nmsedec,
 		int partial,
+		int runlen,
+		int x,
+		int y,
 		int vsc);
 /**
 Decode clean-up pass
@@ -1094,9 +1097,26 @@ static void t1_enc_clnpass_step(
 		int one,
 		int *nmsedec,
 		int partial,
+		int runlen,
+		int x,
+		int y,
 		int vsc)
 {
 	int v;
+
+	int const check = (T1_SIGMA_4 | T1_SIGMA_7 | T1_SIGMA_10 | T1_SIGMA_13 | T1_PI_0 | T1_PI_1 | T1_PI_2 | T1_PI_3);
+	if ((*enc_flagsp & check) == check) {
+		if (runlen == 0) {
+			*enc_flagsp &= ~(T1_PI_0 | T1_PI_1 | T1_PI_2 | T1_PI_3);
+		} else if (runlen == 1) {
+			*enc_flagsp &= ~(T1_PI_1 | T1_PI_2 | T1_PI_3);
+		} else if (runlen == 2) {
+			*enc_flagsp &= ~(T1_PI_2 | T1_PI_3);
+		} else if (runlen == 3) {
+			*enc_flagsp &= ~(T1_PI_3);
+		}
+		return;
+	}
 	
 	opj_mqc_t *mqc = t1->mqc;	/* MQC component */
 
@@ -1257,6 +1277,9 @@ static void t1_enc_clnpass(
 						one,
 						nmsedec,
 						agg && (j == k + runlen),
+						runlen,
+						i,
+						k,
 						vsc);
 			}
 		}
