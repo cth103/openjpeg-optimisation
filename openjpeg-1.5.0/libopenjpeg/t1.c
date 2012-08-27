@@ -291,40 +291,11 @@ static void t1_decode_cblk(
 /* ----------------------------------------------------------------------- */
 
 static char t1_dec_getctxno_zc(dec_flags_t f, int orient) {
-	return lut_ctxno_zc[(orient << 8) | (f & T1_SIG_OTH)];
+	return lut_dec_ctxno_zc[(orient << 8) | (f & T1_SIG_OTH)];
 }
 
 static char t1_enc_getctxno_zc(int orient, enc_flags_t fX, int ci) {
-
-	dec_flags_t ff = 0;
-	enc_flags_t shift_flags = fX >> (ci * 3);
-
-	if (shift_flags & T1_SIGMA_NW) {
-		ff |= T1_SIG_NW;
-	}
-	if (shift_flags & T1_SIGMA_N) {
-		ff |= T1_SIG_N;
-	}
-	if (shift_flags & T1_SIGMA_NE) {
-		ff |= T1_SIG_NE;
-	}
-	if (shift_flags & T1_SIGMA_E) {
-		ff |= T1_SIG_E;
-	}
-	if (shift_flags & T1_SIGMA_SE) {
-		ff |= T1_SIG_SE;
-	}
-	if (shift_flags & T1_SIGMA_S) {
-		ff |= T1_SIG_S;
-	}
-	if (shift_flags & T1_SIGMA_SW) {
-		ff |= T1_SIG_SW;
-	}
-	if (shift_flags & T1_SIGMA_W) {
-		ff |= T1_SIG_W;
-	}
-
-	return lut_ctxno_zc[(orient << 8) | ff];
+	return lut_enc_ctxno_zc[(orient << 9) | ((fX >> (ci * 3)) & T1_SIGMA_NEIGHBOURS)];
 }
 
 static char t1_enc_getctxno_sc(enc_flags_t fX, enc_flags_t pfX, enc_flags_t nfX, int ci) {
