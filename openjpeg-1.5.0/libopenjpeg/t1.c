@@ -297,86 +297,34 @@ static char t1_enc_getctxno_zc(int orient, enc_flags_t fX, int ci) {
 static char t1_enc_getctxno_sc(enc_flags_t fX, enc_flags_t pfX, enc_flags_t nfX, int ci) {
 
 	enc_flags_t tfX = fX >> (ci * 3);
-	
-	dec_flags_t ff = 0;
 
-	if (tfX & T1_SIGMA_1) {
-		ff |= T1_SIG_N;
-	}
-	if (tfX & T1_SIGMA_3) {
-		ff |= T1_SIG_W;
-	}
-	if (tfX & T1_SIGMA_5) {
-		ff |= T1_SIG_E;
-	}
-	if (tfX & T1_SIGMA_7) {
-		ff |= T1_SIG_S;
-	}
+	/*
+	  0 pfX T1_CHI_THIS           T1_LUT_CTXNO_SGN_W
+	  1 tfX T1_SIGMA_1            T1_LUT_CTXNO_SIG_N
+	  2 nfX T1_CHI_THIS           T1_LUT_CTXNO_SGN_E
+	  3 tfX T1_SIGMA_3            T1_LUT_CTXNO_SIG_W
+	  4  fX T1_CHI_(THIS - 1)     T1_LUT_CTXNO_SGN_N
+	  5 tfX T1_SIGMA_5            T1_LUT_CTXNO_SIG_E
+	  6  fX T1_CHI_(THIS + 1)     T1_LUT_CTXNO_SGN_S
+	  7 tfX T1_SIGMA_7            T1_LUT_CTXNO_SIG_S
+	*/
 
-	switch (ci) {
-	case 0:
-		if (fX & T1_CHI_0) {
-			ff |= T1_SGN_N;
-		}
-		if (fX & T1_CHI_2) {
-			ff |= T1_SGN_S;
-		}
-		if (pfX & T1_CHI_1) {
-			ff |= T1_SGN_W;
-		}
-		if (nfX & T1_CHI_1) {
-			ff |= T1_SGN_E;
-		}
-		break;
-	case 1:
-		if (fX & T1_CHI_1) {
-			ff |= T1_SGN_N;
-		}
-		if (fX & T1_CHI_3) {
-			ff |= T1_SGN_S;
-		}
-		if (pfX & T1_CHI_2) {
-			ff |= T1_SGN_W;
-		}
-		if (nfX & T1_CHI_2) {
-			ff |= T1_SGN_E;
-		}
-		break;
-	case 2:
-		if (fX & T1_CHI_2) {
-			ff |= T1_SGN_N;
-		}
-		if (fX & T1_CHI_4) {
-			ff |= T1_SGN_S;
-		}
-		if (pfX & T1_CHI_3) {
-			ff |= T1_SGN_W;
-		}
-		if (nfX & T1_CHI_3) {
-			ff |= T1_SGN_E;
-		}
-		break;
-	case 3:
-		if (fX & T1_CHI_3) {
-			ff |= T1_SGN_N;
-		}
-		if (fX & T1_CHI_5) {
-			ff |= T1_SGN_S;
-		}
-		if (pfX & T1_CHI_4) {
-			ff |= T1_SGN_W;
-		}
-		if (nfX & T1_CHI_4) {
-			ff |= T1_SGN_E;
-		}
-		break;
-	}
+	int lu = (fX >> (ci * 3)) & (T1_SIGMA_1 | T1_SIGMA_3 | T1_SIGMA_5 | T1_SIGMA_7);
 
-	return lut_ctxno_sc[ff >> 4];
+	lu |= (pfX >> (T1_CHI_THIS_I     + (ci * 3))) & (1 << 0);
+	lu |= (nfX >> (T1_CHI_THIS_I - 2 + (ci * 3))) & (1 << 2);
+	if (ci == 0) {
+		lu |= (fX >> (T1_CHI_0_I - 4)) & (1 << 4);
+	} else {
+		lu |= (fX >> (T1_CHI_1_I - 4 + ((ci - 1) * 3))) & (1 << 4);
+	}
+	lu |= (fX >> (T1_CHI_2_I - 6 + (ci * 3))) & (1 << 6);
+
+	return lut_enc_ctxno_sc[lu];
 }
 
 static char t1_dec_getctxno_sc(dec_flags_t f) {
-	return lut_ctxno_sc[(f & (T1_SIG_PRIM | T1_SGN)) >> 4];
+	return lut_dec_ctxno_sc[(f & (T1_SIG_PRIM | T1_SGN)) >> 4];
 }
 
 static int t1_dec_getctxno_mag(dec_flags_t f) {

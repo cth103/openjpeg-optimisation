@@ -112,10 +112,13 @@ in T1.C are used by some function in TCD.C.
 #define T1_SIGMA_17 (1 << 17)
 
 #define T1_CHI_0    (1 << 18)
+#define T1_CHI_0_I  18
 #define T1_CHI_1    (1 << 19)
+#define T1_CHI_1_I  19
 #define T1_MU_0     (1 << 20)
 #define T1_PI_0     (1 << 21)
 #define T1_CHI_2    (1 << 22)
+#define T1_CHI_2_I  22
 #define T1_MU_1     (1 << 23)
 #define T1_PI_1     (1 << 24)
 #define T1_CHI_3    (1 << 25)
@@ -123,7 +126,6 @@ in T1.C are used by some function in TCD.C.
 #define T1_PI_2     (1 << 27)
 #define T1_CHI_4    (1 << 28)
 #define T1_MU_3     (1 << 29)
-#define T1_PI_3     (1 << 30)
 #define T1_PI_3     (1 << 30)
 #define T1_CHI_5    (1 << 31)
 
@@ -160,8 +162,19 @@ in T1.C are used by some function in TCD.C.
 #define T1_SIGMA_NEIGHBOURS (T1_SIGMA_NW | T1_SIGMA_N | T1_SIGMA_NE | T1_SIGMA_W | T1_SIGMA_E | T1_SIGMA_SW | T1_SIGMA_S | T1_SIGMA_SE)
 
 #define T1_CHI_THIS   T1_CHI_1
+#define T1_CHI_THIS_I T1_CHI_1_I
 #define T1_MU_THIS    T1_MU_0
 #define T1_PI_THIS    T1_PI_0
+
+
+#define T1_LUT_CTXNO_SC_SGN_W (1 << 0)
+#define T1_LUT_CTXNO_SC_SIG_N (1 << 1)
+#define T1_LUT_CTXNO_SC_SGN_E (1 << 2)
+#define T1_LUT_CTXNO_SC_SIG_W (1 << 3)
+#define T1_LUT_CTXNO_SC_SGN_N (1 << 4)
+#define T1_LUT_CTXNO_SC_SIG_E (1 << 5)
+#define T1_LUT_CTXNO_SC_SGN_S (1 << 6)
+#define T1_LUT_CTXNO_SC_SIG_S (1 << 7)
 
 
 /* ----------------------------------------------------------------------- */

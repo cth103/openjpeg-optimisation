@@ -177,7 +177,7 @@ static int t1_init_enc_ctxno_zc(int f, int orient) {
 	return (T1_CTXNO_ZC + n);
 }
 
-static int t1_init_ctxno_sc(int f) {
+static int t1_init_dec_ctxno_sc(int f) {
 	int hc, vc, n;
 	n = 0;
 
@@ -194,6 +194,47 @@ static int t1_init_ctxno_sc(int f) {
 					(T1_SIG_N | T1_SGN_N)) +
 				((f & (T1_SIG_S | T1_SGN_S)) ==
 				 (T1_SIG_S | T1_SGN_S)), 1);
+
+	if (hc < 0) {
+		hc = -hc;
+		vc = -vc;
+	}
+	if (!hc) {
+		if (vc == -1)
+			n = 1;
+		else if (!vc)
+			n = 0;
+		else
+			n = 1;
+	} else if (hc == 1) {
+		if (vc == -1)
+			n = 2;
+		else if (!vc)
+			n = 3;
+		else
+			n = 4;
+	}
+
+	return (T1_CTXNO_SC + n);
+}
+
+static int t1_init_enc_ctxno_sc(int f) {
+	int hc, vc, n;
+	n = 0;
+
+	hc = int_min(((f & (T1_LUT_CTXNO_SC_SIG_E | T1_LUT_CTXNO_SC_SGN_E)) ==
+				T1_LUT_CTXNO_SC_SIG_E) + ((f & (T1_LUT_CTXNO_SC_SIG_W | T1_LUT_CTXNO_SC_SGN_W)) == T1_LUT_CTXNO_SC_SIG_W),
+			1) - int_min(((f & (T1_LUT_CTXNO_SC_SIG_E | T1_LUT_CTXNO_SC_SGN_E)) ==
+					(T1_LUT_CTXNO_SC_SIG_E | T1_LUT_CTXNO_SC_SGN_E)) +
+				((f & (T1_LUT_CTXNO_SC_SIG_W | T1_LUT_CTXNO_SC_SGN_W)) ==
+				 (T1_LUT_CTXNO_SC_SIG_W | T1_LUT_CTXNO_SC_SGN_W)), 1);
+
+	vc = int_min(((f & (T1_LUT_CTXNO_SC_SIG_N | T1_LUT_CTXNO_SC_SGN_N)) ==
+				T1_LUT_CTXNO_SC_SIG_N) + ((f & (T1_LUT_CTXNO_SC_SIG_S | T1_LUT_CTXNO_SC_SGN_S)) == T1_LUT_CTXNO_SC_SIG_S),
+			1) - int_min(((f & (T1_LUT_CTXNO_SC_SIG_N | T1_LUT_CTXNO_SC_SGN_N)) ==
+					(T1_LUT_CTXNO_SC_SIG_N | T1_LUT_CTXNO_SC_SGN_N)) +
+				((f & (T1_LUT_CTXNO_SC_SIG_S | T1_LUT_CTXNO_SC_SGN_S)) ==
+				 (T1_LUT_CTXNO_SC_SIG_S | T1_LUT_CTXNO_SC_SGN_S)), 1);
 
 	if (hc < 0) {
 		hc = -hc;
@@ -309,14 +350,23 @@ int main(){
 	}
 	printf("%i\n};\n\n", lut_enc_ctxno_zc[2047]);
 
-	// lut_ctxno_sc
-	printf("static char lut_ctxno_sc[256] = {\n  ");
+	// lut_dec_ctxno_sc
+	printf("static char lut_dec_ctxno_sc[256] = {\n  ");
 	for (i = 0; i < 255; ++i) {
-		printf("0x%x, ", t1_init_ctxno_sc(i << 4));
+		printf("0x%x, ", t1_init_dec_ctxno_sc(i << 4));
 		if(!((i+1)&0xf))
 			printf("\n  ");
 	}
-	printf("0x%x\n};\n\n", t1_init_ctxno_sc(255 << 4));
+	printf("0x%x\n};\n\n", t1_init_dec_ctxno_sc(255 << 4));
+
+	// lut_enc_ctxno_sc
+	printf("static char lut_enc_ctxno_sc[256] = {\n  ");
+	for (i = 0; i < 255; ++i) {
+		printf("0x%x, ", t1_init_enc_ctxno_sc(i));
+		if(!((i+1)&0xf))
+			printf("\n  ");
+	}
+	printf("0x%x\n};\n\n", t1_init_enc_ctxno_sc(255));
 
 	// lut_spb
 	printf("static char lut_spb[256] = {\n  ");
