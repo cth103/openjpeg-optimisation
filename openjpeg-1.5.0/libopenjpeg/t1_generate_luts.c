@@ -222,19 +222,19 @@ static int t1_init_enc_ctxno_sc(int f) {
 	int hc, vc, n;
 	n = 0;
 
-	hc = int_min(((f & (T1_LUT_CTXNO_SC_SIG_E | T1_LUT_CTXNO_SC_SGN_E)) ==
-				T1_LUT_CTXNO_SC_SIG_E) + ((f & (T1_LUT_CTXNO_SC_SIG_W | T1_LUT_CTXNO_SC_SGN_W)) == T1_LUT_CTXNO_SC_SIG_W),
-			1) - int_min(((f & (T1_LUT_CTXNO_SC_SIG_E | T1_LUT_CTXNO_SC_SGN_E)) ==
-					(T1_LUT_CTXNO_SC_SIG_E | T1_LUT_CTXNO_SC_SGN_E)) +
-				((f & (T1_LUT_CTXNO_SC_SIG_W | T1_LUT_CTXNO_SC_SGN_W)) ==
-				 (T1_LUT_CTXNO_SC_SIG_W | T1_LUT_CTXNO_SC_SGN_W)), 1);
+	hc = int_min(((f & (T1_LUT_SIG_E | T1_LUT_SGN_E)) ==
+				T1_LUT_SIG_E) + ((f & (T1_LUT_SIG_W | T1_LUT_SGN_W)) == T1_LUT_SIG_W),
+			1) - int_min(((f & (T1_LUT_SIG_E | T1_LUT_SGN_E)) ==
+					(T1_LUT_SIG_E | T1_LUT_SGN_E)) +
+				((f & (T1_LUT_SIG_W | T1_LUT_SGN_W)) ==
+				 (T1_LUT_SIG_W | T1_LUT_SGN_W)), 1);
 
-	vc = int_min(((f & (T1_LUT_CTXNO_SC_SIG_N | T1_LUT_CTXNO_SC_SGN_N)) ==
-				T1_LUT_CTXNO_SC_SIG_N) + ((f & (T1_LUT_CTXNO_SC_SIG_S | T1_LUT_CTXNO_SC_SGN_S)) == T1_LUT_CTXNO_SC_SIG_S),
-			1) - int_min(((f & (T1_LUT_CTXNO_SC_SIG_N | T1_LUT_CTXNO_SC_SGN_N)) ==
-					(T1_LUT_CTXNO_SC_SIG_N | T1_LUT_CTXNO_SC_SGN_N)) +
-				((f & (T1_LUT_CTXNO_SC_SIG_S | T1_LUT_CTXNO_SC_SGN_S)) ==
-				 (T1_LUT_CTXNO_SC_SIG_S | T1_LUT_CTXNO_SC_SGN_S)), 1);
+	vc = int_min(((f & (T1_LUT_SIG_N | T1_LUT_SGN_N)) ==
+				T1_LUT_SIG_N) + ((f & (T1_LUT_SIG_S | T1_LUT_SGN_S)) == T1_LUT_SIG_S),
+			1) - int_min(((f & (T1_LUT_SIG_N | T1_LUT_SGN_N)) ==
+					(T1_LUT_SIG_N | T1_LUT_SGN_N)) +
+				((f & (T1_LUT_SIG_S | T1_LUT_SGN_S)) ==
+				 (T1_LUT_SIG_S | T1_LUT_SGN_S)), 1);
 
 	if (hc < 0) {
 		hc = -hc;
@@ -259,7 +259,7 @@ static int t1_init_enc_ctxno_sc(int f) {
 	return (T1_CTXNO_SC + n);
 }
 
-static int t1_init_spb(int f) {
+static int t1_init_dec_spb(int f) {
 	int hc, vc, n;
 
 	hc = int_min(((f & (T1_SIG_E | T1_SGN_E)) ==
@@ -275,6 +275,31 @@ static int t1_init_spb(int f) {
 					(T1_SIG_N | T1_SGN_N)) +
 				((f & (T1_SIG_S | T1_SGN_S)) ==
 				 (T1_SIG_S | T1_SGN_S)), 1);
+
+	if (!hc && !vc)
+		n = 0;
+	else
+		n = (!(hc > 0 || (!hc && vc > 0)));
+
+	return n;
+}
+
+static int t1_init_enc_spb(int f) {
+	int hc, vc, n;
+
+	hc = int_min(((f & (T1_LUT_SIG_E | T1_LUT_SGN_E)) ==
+				T1_LUT_SIG_E) + ((f & (T1_LUT_SIG_W | T1_LUT_SGN_W)) == T1_LUT_SIG_W),
+			1) - int_min(((f & (T1_LUT_SIG_E | T1_LUT_SGN_E)) ==
+					(T1_LUT_SIG_E | T1_LUT_SGN_E)) +
+				((f & (T1_LUT_SIG_W | T1_LUT_SGN_W)) ==
+				 (T1_LUT_SIG_W | T1_LUT_SGN_W)), 1);
+
+	vc = int_min(((f & (T1_LUT_SIG_N | T1_LUT_SGN_N)) ==
+				T1_LUT_SIG_N) + ((f & (T1_LUT_SIG_S | T1_LUT_SGN_S)) == T1_LUT_SIG_S),
+			1) - int_min(((f & (T1_LUT_SIG_N | T1_LUT_SGN_N)) ==
+					(T1_LUT_SIG_N | T1_LUT_SGN_N)) +
+				((f & (T1_LUT_SIG_S | T1_LUT_SGN_S)) ==
+				 (T1_LUT_SIG_S | T1_LUT_SGN_S)), 1);
 
 	if (!hc && !vc)
 		n = 0;
@@ -368,15 +393,24 @@ int main(){
 	}
 	printf("0x%x\n};\n\n", t1_init_enc_ctxno_sc(255));
 
-	// lut_spb
-	printf("static char lut_spb[256] = {\n  ");
+	// lut_dec_spb
+	printf("static char lut_dec_spb[256] = {\n  ");
 	for (i = 0; i < 255; ++i) {
-		printf("%i, ", t1_init_spb(i << 4));
+		printf("%i, ", t1_init_dec_spb(i << 4));
 		if(!((i+1)&0x1f))
 			printf("\n  ");
 	}
-	printf("%i\n};\n\n", t1_init_spb(255 << 4));
+	printf("%i\n};\n\n", t1_init_dec_spb(255 << 4));
 
+	// lut_enc_spb
+	printf("static char lut_enc_spb[256] = {\n  ");
+	for (i = 0; i < 255; ++i) {
+		printf("%i, ", t1_init_enc_spb(i));
+		if(!((i+1)&0x1f))
+			printf("\n  ");
+	}
+	printf("%i\n};\n\n", t1_init_enc_spb(255));
+	
 	/* FIXME FIXME FIXME */
 	/* fprintf(stdout,"nmsedec luts:\n"); */
 	for (i = 0; i < (1 << T1_NMSEDEC_BITS); ++i) {
