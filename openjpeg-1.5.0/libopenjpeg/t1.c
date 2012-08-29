@@ -42,11 +42,11 @@
 /** @name Local static functions */
 /*@{*/
 
-static INLINE char t1_enc_getctxno_zc(int orient, enc_flags_t fX, int ci);
+static INLINE char t1_enc_getctxno_zc(int orient, enc_flags_t shift_flags);
 static INLINE char t1_dec_getctxno_zc(dec_flags_t f, int orient);
 static char t1_enc_getctxno_sc(enc_flags_t fX, enc_flags_t pfX, enc_flags_t nfX, int ci);
 static char t1_dec_getctxno_sc(dec_flags_t f);
-static INLINE int t1_enc_getctxno_mag(enc_flags_t fX, int ci);
+static INLINE int t1_enc_getctxno_mag(enc_flags_t shift_flags);
 static INLINE int t1_dec_getctxno_mag(dec_flags_t f);
 static char t1_enc_getspb(enc_flags_t fX, enc_flags_t pfX, enc_flags_t nfX, int ci);
 static char t1_dec_getspb(dec_flags_t f);
@@ -125,9 +125,7 @@ static void t1_enc_refpass_step(
 		int bpno,
 		int one,
 		int *nmsedec,
-		char type,
-		int x,
-		int y);
+		char type);
 /**
 Decode refinement pass
 */
@@ -290,8 +288,8 @@ static char t1_dec_getctxno_zc(dec_flags_t f, int orient) {
 	return lut_dec_ctxno_zc[(orient << 8) | (f & T1_SIG_OTH)];
 }
 
-static char t1_enc_getctxno_zc(int orient, enc_flags_t fX, int ci) {
-	return lut_enc_ctxno_zc[(orient << 9) | ((fX >> (ci * 3)) & T1_SIGMA_NEIGHBOURS)];
+static char t1_enc_getctxno_zc(int orient, enc_flags_t shift_flags) {
+	return lut_enc_ctxno_zc[(orient << 9) | (shift_flags & T1_SIGMA_NEIGHBOURS)];
 }
 
 static char t1_enc_getctxno_sc(enc_flags_t fX, enc_flags_t pfX, enc_flags_t nfX, int ci) {
@@ -331,10 +329,8 @@ static int t1_dec_getctxno_mag(dec_flags_t f) {
 	return (tmp2);
 }
 
-static int t1_enc_getctxno_mag(enc_flags_t ff, int ci) {
+static int t1_enc_getctxno_mag(enc_flags_t shift_flags) {
 
-	enc_flags_t shift_flags = ff >> (ci * 3);
-	
 	int tmp = (shift_flags & T1_SIGMA_NEIGHBOURS) ? T1_CTXNO_MAG + 1 : T1_CTXNO_MAG;
 	int tmp2 = (shift_flags & T1_MU_0) ? T1_CTXNO_MAG + 2 : tmp;
 
@@ -503,7 +499,7 @@ static void t1_enc_sigpass_step(
 		
 		if ((shift_flags & (T1_SIGMA_THIS | T1_PI_THIS)) == 0 && (shift_flags & T1_SIGMA_NEIGHBOURS) != 0) {
 			v = int_abs(*datap) & one ? 1 : 0;
-			mqc_setcurctx(mqc, t1_enc_getctxno_zc(orient, *enc_flagsp, ci));	/* ESSAI */
+			mqc_setcurctx(mqc, t1_enc_getctxno_zc(orient, shift_flags));  /* ESSAI */
 			if (type == T1_TYPE_RAW) {	/* BYPASS/LAZY MODE */
 				mqc_bypass_enc(mqc, v);
 			} else {
@@ -611,18 +607,30 @@ static void t1_enc_sigpass(
 	int i, k, one;
 	*nmsedec = 0;
 	one = 1 << (bpno + T1_NMSEDEC_FRACBITS);
+
+	enc_flags_t* f = &ENC_FLAGS(0, 0);
+	int const extra = t1->enc_flags_stride - t1->w;
+
+	int* d = t1->data;
+	
 	for (k = 0; k < t1->h; k += 4) {
 		for (i = 0; i < t1->w; ++i) {
 			t1_enc_sigpass_step(
 				t1,
-				&ENC_FLAGS(i, k),
+				f,
 				&t1->data[(k * t1->w) + i],
 				orient,
 				bpno,
 				one,
 				nmsedec,
 				type);
+
+			++f;
+			++d;
 		}
+
+		d += (t1->w * 3);
+		f += extra;
 	}
 }
 
@@ -726,9 +734,7 @@ static void t1_enc_refpass_step(
 		int bpno,
 		int one,
 		int *nmsedec,
-		char type,
-		int x,
-		int y)
+		char type)
 {
 	int v;
 	int ci;
@@ -755,7 +761,7 @@ static void t1_enc_refpass_step(
 		if ((shift_flags & (T1_SIGMA_4 | T1_PI_0)) == T1_SIGMA_4) {
 			*nmsedec += t1_getnmsedec_ref(int_abs(*datap), bpno + T1_NMSEDEC_FRACBITS);
 			v = int_abs(*datap) & one ? 1 : 0;
-			mqc_setcurctx(mqc, t1_enc_getctxno_mag(*flagsp, ci));	/* ESSAI */
+			mqc_setcurctx(mqc, t1_enc_getctxno_mag(shift_flags));	/* ESSAI */
 			if (type == T1_TYPE_RAW) {	/* BYPASS/LAZY MODE */
 				mqc_bypass_enc(mqc, v);
 			} else {
@@ -842,19 +848,27 @@ static void t1_enc_refpass(
 	int i, j, k, one;
 	*nmsedec = 0;
 	one = 1 << (bpno + T1_NMSEDEC_FRACBITS);
+
+	enc_flags_t* f = &ENC_FLAGS(0, 0);
+	int const extra = t1->enc_flags_stride - t1->w;
+
+	int* d = t1->data;
+	
 	for (k = 0; k < t1->h; k += 4) {
 		for (i = 0; i < t1->w; ++i) {
 			t1_enc_refpass_step(
 				t1,
-				&ENC_FLAGS(i, k),
-				&t1->data[(k * t1->w) + i],
+				f,
+				&t1->data[(k * t1->w) + i],//d,
 				bpno,
 				one,
 				nmsedec,
-				type,
-				i,
-				k);
+				type);
+			++f;
+			++d;
 		}
+		f += extra;
+		d += (t1->w * 3);
 	}
 }
 
@@ -998,7 +1012,7 @@ static void t1_enc_clnpass_step(
 		enc_flags_t shift_flags = *enc_flagsp >> (ci * 3);
 		
 		if (!(shift_flags & (T1_SIGMA_4 | T1_PI_0))) {
-			mqc_setcurctx(mqc, t1_enc_getctxno_zc(orient, *enc_flagsp, ci));
+			mqc_setcurctx(mqc, t1_enc_getctxno_zc(orient, shift_flags));
 			v = int_abs(*datap) & one ? 1 : 0;
 			mqc_encode(mqc, v);
 			if (v) {
@@ -1099,9 +1113,10 @@ static void t1_enc_clnpass(
 	int i, k, one, agg, runlen, vsc;
 	
 	opj_mqc_t *mqc = t1->mqc;	/* MQC component */
-	
+
 	*nmsedec = 0;
 	one = 1 << (bpno + T1_NMSEDEC_FRACBITS);
+	
 	for (k = 0; k < t1->h; k += 4) {
 		for (i = 0; i < t1->w; ++i) {
 			if (cblksty & J2K_CCP_CBLKSTY_VSC) {
