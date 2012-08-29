@@ -982,7 +982,9 @@ static void t1_enc_clnpass_step(
 	
 	opj_mqc_t *mqc = t1->mqc;	/* MQC component */
 
-	for (ci = runlen; ci < 4 && (ci + y) < t1->h; ++ci) {
+	int const lim = 4 < (t1->h - y) ? 4 : (t1->h - y);
+
+	for (ci = runlen; ci < lim; ++ci) {
 		
 		/* XXX:TODO vsc mode a la 
 		   vsc = ((cblksty & J2K_CCP_CBLKSTY_VSC) && (j == k + 3 || j == t1->h - 1)) ? 1 : 0;
