@@ -853,7 +853,7 @@ static void t1_enc_refpass(
 			t1_enc_refpass_step(
 				t1,
 				f,
-				&t1->data[(k * t1->w) + i],//d,
+				d,
 				bpno,
 				one,
 				nmsedec,
